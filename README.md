@@ -1,5 +1,7 @@
 # Text Editor TUI
 
+![](./assets/images/text_editor_tui_0_1.png "Text Editor TUI 0.1.0 Screenshot")
+
 A simple terminal text editor written in Python with [Textual](https://textual.textualize.io/).
 
 **Version 0.1.0 (2026.11).**

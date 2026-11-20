@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "text_editor_tui"
+version = "0.1.0"
+description = "A simple terminal text editor built with Textual"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["editor", "terminal", "tui", "textual", "text"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Text Editors",
+]
+dependencies = [
+    "textual>=8.0",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.16"]
+
+[project.scripts]
+text_editor_tui = "text_editor_tui.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+text_editor_tui = ["styles.tcss"]
+
+[tool.ruff]
+src = ["src", "tests"]
+target-version = "py310"
+line-length = 88
+extend-exclude = ["venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "D"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/test_editor.py" = ["E402"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

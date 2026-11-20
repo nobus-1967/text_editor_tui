@@ -1,0 +1,208 @@
+/* Text Editor TUI stylesheet */
+
+Screen {
+    background: $surface;
+}
+
+#main {
+    height: 1fr;
+}
+
+MenuBar {
+    height: 1;
+    background: $menu-background;
+    dock: top;
+}
+
+.menu-title {
+    width: auto;
+    padding: 0 2;
+    background: $menu-background;
+    color: $menu-foreground;
+}
+
+.menu-title:hover {
+    background: $menu-active-background;
+    color: $menu-active-foreground;
+}
+
+#editor {
+    height: 1fr;
+    color: $editor-foreground;
+    background: $editor-background;
+}
+
+#status {
+    height: 1;
+    padding: 0 1;
+    background: $status-background;
+    color: $status-foreground;
+}
+
+FunctionKeyBar {
+    height: 1;
+    background: $keybar-background;
+}
+
+FunctionKey {
+    width: auto;
+    height: 1;
+    background: $menu-background;
+}
+
+FunctionKey .function-key--key,
+PaletteHint .function-key--key {
+    color: $menu-active-foreground;
+    background: $menu-active-background;
+    text-style: bold;
+}
+
+FunctionKey .function-key--label,
+PaletteHint .function-key--label {
+    color: $menu-foreground;
+    background: $menu-background;
+}
+
+FunctionKey:hover .function-key--key {
+    color: $menu-foreground;
+    background: $menu-active-background;
+}
+
+FunctionKey:hover .function-key--label {
+    color: $menu-active-foreground;
+    background: $menu-active-background;
+}
+
+PaletteHint {
+    width: auto;
+    height: 1;
+    margin-left: 1;
+    background: $menu-background;
+}
+
+PaletteHint:hover .function-key--key {
+    color: $menu-foreground;
+    background: $menu-active-background;
+}
+
+PaletteHint:hover .function-key--label {
+    color: $menu-active-foreground;
+    background: $menu-active-background;
+}
+
+ModalScreen {
+    align: center middle;
+    background: $background 60%;
+}
+
+#dialog,
+#file-dialog,
+#menu-dialog,
+#info-dialog {
+    width: 72;
+    height: auto;
+    max-height: 85%;
+    padding: 1 2;
+    background: $dialog-background;
+    color: $dialog-foreground;
+    border: thick $accent;
+}
+
+#dialog.dialog-small {
+    width: 52;
+}
+
+#dialog.dialog-wide {
+    width: 84;
+}
+
+#dialog-title {
+    height: 2;
+    color: $dialog-foreground;
+    text-style: bold;
+}
+
+.dialog-intro,
+.dialog-message {
+    margin-bottom: 1;
+}
+
+#form-body {
+    height: auto;
+    max-height: 24;
+}
+
+.field-label {
+    margin-top: 1;
+}
+
+#dialog-buttons {
+    height: auto;
+    margin-top: 1;
+    align-horizontal: right;
+}
+
+#dialog-buttons Button {
+    margin-left: 2;
+}
+
+#info-dialog {
+    width: 90;
+    height: 85%;
+}
+
+#info-body {
+    height: 1fr;
+    overflow-y: auto;
+}
+
+#menu-dialog {
+    width: 64;
+    background: $menu-background;
+    color: $menu-foreground;
+}
+
+#menu-list {
+    height: auto;
+    max-height: 25;
+    background: $menu-background;
+    color: $menu-foreground;
+}
+
+#menu-list > .option-list--option {
+    background: $menu-background;
+    color: $menu-foreground;
+}
+
+#menu-list > .option-list--option-highlighted,
+#menu-list > .option-list--option-hover {
+    background: $menu-active-background;
+    color: $menu-active-foreground;
+}
+
+#file-dialog {
+    width: 84;
+}
+
+#file-list-wrap {
+    height: 18;
+    margin-top: 1;
+}
+
+#file-list {
+    height: 1fr;
+}
+
+Toast.-warning,
+Toast.-warning .toast--title {
+    color: $warning;
+}
+
+Toast.-error,
+Toast.-error .toast--title {
+    color: $error;
+}
+
+Toast.-warning {
+    border-left: outer $warning;
+}

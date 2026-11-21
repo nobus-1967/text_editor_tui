@@ -324,10 +324,7 @@ class TextEditorApp(App[None]):
 
     def _save_to(self, path: Path) -> None:
         """Write the current buffer to *path*."""
-        path = path.expanduser()
-        if not path.suffix:
-            path = path.with_suffix(".txt")
-        path = path.resolve()
+        path = path.expanduser().resolve()
         old_file = self.current_file
         try:
             path.parent.mkdir(parents=True, exist_ok=True)

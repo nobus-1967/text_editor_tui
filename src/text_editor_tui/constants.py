@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 APP_NAME = "Text Editor TUI"
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 RELEASE = "2026.11"
 
 CONFIG_DIR = Path.home() / ".config" / "text_editor"

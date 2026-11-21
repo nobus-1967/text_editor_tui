@@ -628,7 +628,7 @@ class FileDialogScreen(ModalScreen[Path | None]):
         self._refresh_listing()
 
     def _activate_path(self) -> None:
-        """Open/save the path in the input field."""
+        """Open or save the path entered in the input field."""
         raw = self._path.value.strip()
         if not raw:
             return
@@ -644,9 +644,6 @@ class FileDialogScreen(ModalScreen[Path | None]):
             else:
                 self.notify("File does not exist", severity="error")
             return
-        if not path.suffix and self.patterns:
-            suffix = self.patterns[0].removeprefix("*")
-            path = path.with_suffix(suffix)
         self.dismiss(path)
 
     def action_cancel(self) -> None:

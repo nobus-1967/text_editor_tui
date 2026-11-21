@@ -1,4 +1,4 @@
-"""Tests for Text Editor TUI 0.1.0."""
+"""Tests for Text Editor TUI 0.1.1."""
 
 from __future__ import annotations
 
@@ -66,8 +66,8 @@ class TestAppMetadata(unittest.TestCase):
         self.assertEqual(APP_NAME, "Text Editor TUI")
 
     def test_version(self) -> None:
-        """The application version is 0.1.0."""
-        self.assertEqual(VERSION, "0.1.0")
+        """The application version is 0.1.1."""
+        self.assertEqual(VERSION, "0.1.1")
 
     def test_release(self) -> None:
         """The release identifier is 2026.11."""
@@ -406,18 +406,49 @@ class TestTextualApp(_IsolatedCacheMixin, unittest.IsolatedAsyncioTestCase):
             self.assertLess(labels.index("Add Indent"), labels.index("Remove Indent"))
             self.assertLess(labels.index("Remove Indent"), labels.index("Line Up"))
 
-    async def test_save_defaults_to_txt(self) -> None:
-        """Saving without a suffix uses .txt by default."""
+    async def test_save_preserves_name_without_extension(self) -> None:
+        """Saving preserves an explicit name without an extension."""
         app = await self._make_app()
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
-            path = self._tmp / "note"
-            app.editor.load_text("hello")
+            path = self._tmp / "script"
+            app.editor.load_text("#!/bin/sh\n")
             await pilot.pause()
             app._save_to(path)
             await pilot.pause()
-            self.assertTrue((self._tmp / "note.txt").exists())
-            self.assertEqual(app.current_file, (self._tmp / "note.txt").resolve())
+            self.assertTrue(path.exists())
+            self.assertFalse((self._tmp / "script.txt").exists())
+            self.assertEqual(app.current_file, path.resolve())
+
+    async def test_save_preserves_existing_extension(self) -> None:
+        """Saving an opened file keeps its original name and extension."""
+        app = await self._make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            path = self._tmp / "config.conf"
+            path.write_text("old", encoding="utf-8")
+            app._open_path(path)
+            await pilot.pause()
+            app.editor.load_text("new")
+            await pilot.pause()
+            app.action_save_file()
+            await pilot.pause()
+            self.assertEqual(path.read_text(encoding="utf-8"), "new")
+            self.assertEqual(app.current_file, path.resolve())
+
+    async def test_save_as_suggests_txt_for_new_file(self) -> None:
+        """Save As suggests a .txt name for a new document."""
+        app = await self._make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            app.action_save_as()
+            await pilot.pause()
+            self.assertEqual(app.screen.dialog_title, "Save text file")
+            self.assertTrue(
+                app.screen.query_one("#file-path").value.endswith("untitled.txt")
+            )
+            await pilot.press("escape")
+            await pilot.pause()
 
     async def test_save_and_open(self) -> None:
         """Saving and opening a text file round-trips content."""

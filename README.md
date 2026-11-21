@@ -1,18 +1,20 @@
 # Text Editor TUI
 
-![](./assets/images/text_editor_tui_0_1.png "Text Editor TUI 0.1.0 Screenshot")
-
 A simple terminal text editor written in Python with [Textual](https://textual.textualize.io/).
 
-**Version 0.1.0 (2026.11).**
+**Version 0.1.1 (2026.11).**
+
+For a full-featured terminal Markdown editor with export to HTML5/CSS3, PDF and plain text, see [Mark Editor TUI](https://github.com/nobus-1967/mark_editor_tui).
 
 ## Features
 
 - Plain text editing with line numbers and multiple color themes.
 - File actions: New, Open, Reopen, Save, Save As.
-- Files are saved as `.txt` by default.
+- Open text files with any extension or without an extension.
+- For new files and **Save As**, `.txt` is suggested by default, but you can enter another extension or no extension.
+- **Save** preserves the original file name and extension (or lack of extension).
 - Edit actions: Undo, Redo, Cut, Copy, Paste, Find, Replace, Select All, Remove Selection.
-- Date and Time insertion.
+- Date and time insertion.
 - Indent and outdent selected lines.
 - Line operations: Line Up/Down, Go to Line, Delete Line.
 - Command palette (`Ctrl+P`) and clickable menus: File, Edit, Help.

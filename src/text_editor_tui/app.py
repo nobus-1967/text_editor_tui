@@ -27,7 +27,10 @@ from text_editor_tui.editor import TextEditor
 from text_editor_tui.help_text import about_markdown, shortcuts_markdown
 from text_editor_tui.helpers import (
     cleanup_temp_files,
+    clear_pending_text,
     ensure_cache_dir,
+    export_to_pdf,
+    get_temp_file_path,
     load_temp_file,
     load_theme,
     save_temp_file,
@@ -45,6 +48,13 @@ from text_editor_tui.screens import (
     ReplaceScreen,
 )
 from text_editor_tui.themes import APP_THEMES, EDITOR_THEMES
+
+
+def _file_signature(path: Path) -> tuple[int, int]:
+    """Return the modification time and size used to detect disk changes."""
+    stat = path.stat()
+    return stat.st_mtime_ns, stat.st_size
+
 
 Command = tuple[str, Callable[[], Any], str]
 
@@ -99,6 +109,7 @@ class TextEditorApp(App[None]):
         Binding("ctrl+shift+o", "reopen_file", "Reopen", show=False, priority=True),
         Binding("ctrl+s", "save_file", "Save", show=False, priority=True),
         Binding("ctrl+shift+s", "save_as", "Save As", show=False, priority=True),
+        Binding("ctrl+e", "export_pdf", "Export PDF", show=False, priority=True),
         Binding("ctrl+z", "undo", "Undo", show=False, priority=True),
         Binding("ctrl+y", "redo", "Redo", show=False, priority=True),
         Binding("ctrl+x", "cut", "Cut", show=False, priority=True),
@@ -128,6 +139,7 @@ class TextEditorApp(App[None]):
         ("File", "Reopen", "action_reopen_file", "Ctrl+Shift+O"),
         ("File", "Save", "action_save_file", "Ctrl+S / F2"),
         ("File", "Save As...", "action_save_as", "Ctrl+Shift+S / F3"),
+        ("File", "Export to PDF", "action_export_pdf", "Ctrl+E"),
         ("File", "Toggle Theme", "action_toggle_theme", "Alt+T"),
         ("File", "Quit", "action_quit", "F10"),
         ("Edit", "Undo", "action_undo", "F11"),
@@ -161,6 +173,8 @@ class TextEditorApp(App[None]):
         self.is_modified = False
         self.theme_mode = load_theme()
         self._suppress_change = 0
+        self._file_signature: tuple[int, int] | None = None
+        self._external_check_timer = None
 
     def get_theme_variable_defaults(self) -> dict[str, str]:
         """Return fallback theme variables used while the stylesheet loads."""
@@ -196,6 +210,7 @@ class TextEditorApp(App[None]):
             self._open_path(self.initial_file)
         else:
             self._restore_pending_text()
+        self._start_external_check()
         self._update_title()
         self._update_status()
 
@@ -216,6 +231,38 @@ class TextEditorApp(App[None]):
         """Remove temporary files and exit after a termination signal."""
         self._cleanup_temp_files()
         self.exit()
+
+    def _start_external_check(self) -> None:
+        """Start watching the current file for changes made outside the editor."""
+        if self._external_check_timer is None:
+            self._external_check_timer = self.set_interval(
+                1, self._check_external_change
+            )
+
+    def _stop_external_check(self) -> None:
+        """Stop watching for external file changes."""
+        if self._external_check_timer is not None:
+            self._external_check_timer.stop()
+            self._external_check_timer = None
+
+    def _check_external_change(self) -> None:
+        """Reload the current file when another program changes it on disk."""
+        if self.current_file is None:
+            self._stop_external_check()
+            return
+        try:
+            signature = _file_signature(self.current_file)
+            if signature == self._file_signature:
+                return
+            text = self.current_file.read_text(encoding="utf-8")
+        except OSError:
+            return
+        self._load_text(text)
+        self.is_modified = False
+        self._file_signature = signature
+        self._update_title()
+        self._update_status()
+        self.notify(f"Reloaded {self.current_file.name}")
 
     def check_action(self, action: str, _parameters: tuple[object, ...]) -> bool:
         """Disable editor shortcuts while a modal dialog is open."""
@@ -300,6 +347,7 @@ class TextEditorApp(App[None]):
         if self.current_file is not None:
             cleanup_temp_files(self.current_file.parent)
         cleanup_temp_files(ensure_cache_dir())
+        clear_pending_text()
 
     def _open_path(self, path: Path) -> None:
         """Load *path* into the editor."""
@@ -315,6 +363,8 @@ class TextEditorApp(App[None]):
         self._load_text(text)
         self.current_file = path
         self.is_modified = False
+        self._file_signature = _file_signature(path)
+        self._start_external_check()
         if old_file is not None:
             cleanup_temp_files(old_file.parent)
         self._update_title()
@@ -338,6 +388,8 @@ class TextEditorApp(App[None]):
             cleanup_temp_files(old_file.parent)
         self.current_file = path
         self.is_modified = False
+        self._file_signature = _file_signature(path)
+        self._start_external_check()
         self._update_title()
         self._update_status()
         self.editor.focus()
@@ -372,6 +424,8 @@ class TextEditorApp(App[None]):
         self._load_text("")
         self.current_file = None
         self.is_modified = False
+        self._file_signature = None
+        self._stop_external_check()
         if old_file is not None:
             cleanup_temp_files(old_file.parent)
         self._update_title()
@@ -417,6 +471,8 @@ class TextEditorApp(App[None]):
             return
         self._load_text(text)
         self.is_modified = False
+        self._file_signature = _file_signature(self.current_file)
+        self._start_external_check()
         self._update_title()
         self._update_status()
         self.editor.focus()
@@ -448,6 +504,40 @@ class TextEditorApp(App[None]):
         """Save to the path selected in the dialog."""
         if path is not None:
             self._save_to(path)
+
+    def action_export_pdf(self) -> None:
+        """Ask for a destination and export the document as PDF."""
+        base = self.current_file.stem if self.current_file else "document"
+        start = self.current_file.parent if self.current_file else Path.cwd()
+        self.push_screen(
+            FileDialogScreen(
+                mode="save",
+                title="Export to PDF",
+                start=start,
+                start_name=base + ".pdf",
+                patterns=("*.pdf",),
+            ),
+            self._export_pdf_result,
+        )
+
+    def _export_pdf_result(self, path: Path | None) -> None:
+        """Print the current document to *path* as PDF."""
+        if path is None:
+            return
+        output = path.expanduser().resolve()
+        if output.suffix.lower() != ".pdf":
+            output = output.with_suffix(".pdf")
+        if self.current_file is not None:
+            source = self.current_file
+        else:
+            save_temp_file(self.editor.text, None)
+            source = get_temp_file_path(None)
+        try:
+            export_to_pdf(source, str(output))
+        except Exception as exc:
+            self.notify(str(exc), title="Export to PDF", severity="error")
+            return
+        self.notify(f"Exported {output}")
 
     def action_undo(self) -> None:
         """Undo the last edit."""

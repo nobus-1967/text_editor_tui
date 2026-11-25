@@ -1,17 +1,18 @@
 # Text Editor TUI
 
-![](./assets/images/text_editor_tui_0_1.png "Text Editor TUI 0.1.1 Screenshot")
+![](./assets/images/text_editor_tui_0_2.png "Text Editor TUI 0.2.0 Screenshot")
 
 A simple terminal text editor written in Python with [Textual](https://textual.textualize.io/).
 
-**Version 0.1.1 (2026.11).**
+**Version 0.2.0 (2026.11).**
 
 For a full-featured terminal Markdown editor with export to HTML5/CSS3, PDF and plain text, see [Mark Editor TUI](https://github.com/nobus-1967/mark_editor_tui).
 
 ## Features
 
 - Plain text editing with line numbers and multiple color themes.
-- File actions: New, Open, Reopen, Save, Save As.
+- File actions: New, Open, Reopen, Save, Save As, Export to PDF (`Ctrl+E`).
+- PDF export prints the text file directly with headless Chromium.
 - Open text files with any extension or without an extension.
 - For new files and **Save As**, `.txt` is suggested by default, but you can enter another extension or no extension.
 - **Save** preserves the original file name and extension (or lack of extension).
@@ -20,6 +21,7 @@ For a full-featured terminal Markdown editor with export to HTML5/CSS3, PDF and 
 - Indent and outdent selected lines.
 - Line operations: Line Up/Down, Go to Line, Delete Line.
 - Command palette (`Ctrl+P`) and clickable menus: File, Edit, Help.
+- External changes to the open file are detected and reloaded automatically.
 - Four color themes (`default`, `green`, `magenta`, `blue`) with persistence between runs (Toggle Theme).
 - Built-in keyboard shortcuts and About screens.
 
@@ -28,6 +30,7 @@ For a full-featured terminal Markdown editor with export to HTML5/CSS3, PDF and 
 - Linux
 - Python 3.10 or newer
 - [Textual](https://pypi.org/project/textual/) 8 or newer
+- [Chromium](https://www.chromium.org/) for PDF export
 
 ## Installation
 
@@ -58,69 +61,78 @@ PYTHONPATH=src ../venv/bin/python -m text_editor_tui [FILE]
 
 Command-line options:
 
-| Option | Description |
-| :--- | :--- |
-| `-h`, `--help` | Show help information and exit. |
+| Option            | Description                        |
+| :---              | :---                               |
+| `-h`, `--help`    | Show help information and exit.    |
 | `-v`, `--version` | Show version information and exit. |
 
 ## Keyboard shortcuts
 
 ### File
 
-| Action | Shortcut |
-| :--- | :--- |
-| New File | `Ctrl+N` |
-| Open... | `Ctrl+O` |
-| Reopen | `Ctrl+Shift+O` |
-| Save | `Ctrl+S`, `F2` |
-| Save As... | `Ctrl+Shift+S`, `F3` |
-| Toggle Theme | `Alt+T` |
-| Quit | `F10` |
+| Action        | Shortcut             |
+| :---          | :---                 |
+| New File      | `Ctrl+N`             |
+| Open...       | `Ctrl+O`             |
+| Reopen        | `Ctrl+Shift+O`       |
+| Save          | `Ctrl+S`, `F2`       |
+| Save As...    | `Ctrl+Shift+S`, `F3` |
+| Export to PDF | `Ctrl+E`             |
+| Toggle Theme  | `Alt+T`              |
+| Quit          | `F10`                |
 
 ### Edit
 
-| Action | Shortcut |
-| :--- | :--- |
-| Undo | `Ctrl+Z`, `F11` |
-| Redo | `Ctrl+Y`, `F12` |
-| Cut | `Ctrl+X`, `Shift+Delete`, `F7` |
-| Copy | `Ctrl+C`, `F8` |
-| Paste | `Ctrl+V`, `Shift+Insert`, `F9` |
-| Find... | `Ctrl+F`, `F4` |
-| Replace... | `Ctrl+R`, `F5` |
-| Select All | `Ctrl+A`, `F6` |
-| Remove Selection | `Ctrl+Shift+A` |
-| Date and Time... | `Ctrl+Shift+D` |
-| Add Indent | `Tab` |
-| Remove Indent | `Shift+Tab` |
-| Line Up | `Alt+Up` |
-| Line Down | `Alt+Down` |
-| Go to Line... | `Ctrl+_` |
-| Delete Line | `Alt+D` |
+| Action           | Shortcut                       |
+| :---             | :---                           |
+| Undo             | `Ctrl+Z`, `F11`                |
+| Redo             | `Ctrl+Y`, `F12`                |
+| Cut              | `Ctrl+X`, `Shift+Delete`, `F7` |
+| Copy             | `Ctrl+C`, `F8`                 |
+| Paste            | `Ctrl+V`, `Shift+Insert`, `F9` |
+| Find...          | `Ctrl+F`, `F4`                 |
+| Replace...       | `Ctrl+R`, `F5`                 |
+| Select All       | `Ctrl+A`, `F6`                 |
+| Remove Selection | `Ctrl+Shift+A`                 |
+| Date and Time... | `Ctrl+Shift+D`                 |
+| Add Indent       | `Tab`                          |
+| Remove Indent    | `Shift+Tab`                    |
+| Line Up          | `Alt+Up`                       |
+| Line Down        | `Alt+Down`                     |
+| Go to Line...    | `Ctrl+_`                       |
+| Delete Line      | `Alt+D`                        |
 
 ### Help
 
-| Action | Shortcut |
-| :--- | :--- |
-| Keyboard Shortcuts | `F1` |
-| About Editor | — |
+| Action             | Shortcut |
+| :---               | :---     |
+| Keyboard Shortcuts | `F1`     |
+| About Editor       | —        |
 
 ### Command palette
 
-| Action | Shortcut |
-| :--- | :--- |
-| Command palette | `Ctrl+P` |
-| Menus | Mouse click |
-| Close menu or command palette | `Esc` |
+| Action                        | Shortcut    |
+| :---                          | :---        |
+| Command palette               | `Ctrl+P`    |
+| Menus                         | Mouse click |
+| Close menu or command palette | `Esc`       |
 
 ## Configuration and temporary files
 
 - Theme settings are stored in `~/.config/text_editor/theme.json`.
-- Temporary files for new (unsaved) documents are stored in `~/.cache/text_editor_tui/`.
-- For a saved document, a temporary recovery file is stored next to it as `~<filename>`.
+- Unsaved buffers are recovered from `~/.cache/text_editor_tui/Temp.txt`.
+- For a saved document, the recovery file is `~<filename>` next to the document.
 - Recovery files use `~`-prefixed names such as `~*.txt`.
 
-Temporary files are removed when the application exits or when the document is closed.
+Recovery files are removed when the document is closed, when another file is opened or saved, and when the application exits. Unsaved changes are also restored on the next launch unless the editor exits normally.
+
+PDF export passes the current `.txt` file directly to Chromium:
+
+```bash
+chromium --headless --print-to-pdf=output.pdf input.txt
+```
+
+The input may have any extension or no extension at all. For an unsaved buffer, the current text is written to `~/.cache/text_editor_tui/Temp.txt` and that file is printed.
 
 ## Package structure
 

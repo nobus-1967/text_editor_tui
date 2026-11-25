@@ -23,6 +23,7 @@ palette hint.
 | Reopen | Ctrl+Shift+O |
 | Save | Ctrl+S, F2 |
 | Save As... | Ctrl+Shift+S, F3 |
+| Export to PDF | Ctrl+E |
 | Toggle Theme | Alt+T |
 | Quit | F10 |
 
@@ -73,6 +74,7 @@ Version **{VERSION}** ({RELEASE})
 A simple terminal text editor written in Python with
 [Textual](https://textual.textualize.io/).
 
-It provides basic file operations, search and replace, line editing, indentation,
-date and time insertion, multiple color themes, and a command palette.
+It provides basic file operations, direct PDF export of text files through
+headless Chromium, search and replace, line editing, indentation, date and
+time insertion, multiple color themes, and a command palette.
 """

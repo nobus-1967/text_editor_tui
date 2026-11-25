@@ -1,4 +1,4 @@
-"""Color themes for the application chrome and the Markdown editor."""
+"""Color themes for the application chrome and the text editor."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from textual.widgets.text_area import TextAreaTheme
 
 APP_THEMES: dict[str, Theme] = {
     "default": Theme(
-        name="mark-default",
+        name="text-editor-default",
         primary="#ffffff",
         secondary="#a8a8a8",
         warning="#ff00ff",
@@ -35,7 +35,7 @@ APP_THEMES: dict[str, Theme] = {
         },
     ),
     "green": Theme(
-        name="mark-green",
+        name="text-editor-green",
         primary="#00ff00",
         secondary="#00af00",
         warning="#870000",
@@ -62,7 +62,7 @@ APP_THEMES: dict[str, Theme] = {
         },
     ),
     "magenta": Theme(
-        name="mark-magenta",
+        name="text-editor-magenta",
         primary="#af00af",
         secondary="#800080",
         warning="#87005f",
@@ -89,7 +89,7 @@ APP_THEMES: dict[str, Theme] = {
         },
     ),
     "blue": Theme(
-        name="mark-blue",
+        name="text-editor-blue",
         primary="#d7d7ff",
         secondary="#87afd7",
         warning="#af0087",

@@ -507,7 +507,7 @@ class FileDialogScreen(ModalScreen[Path | None]):
         mode: str = "open",
         title: str = "Open file",
         start: Path | None = None,
-        patterns: tuple[str, ...] = ("*.md", "*.markdown"),
+        patterns: tuple[str, ...] = ("*.txt", "*.text"),
         start_name: str = "",
     ) -> None:
         """Create a file dialog.

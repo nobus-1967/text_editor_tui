@@ -5,6 +5,7 @@
 #   ./build.sh
 #
 # The resulting one-file binary is written to bin/ next to this script.
+# Chromium is an external system dependency for PDF export and is not bundled.
 
 set -euo pipefail
 

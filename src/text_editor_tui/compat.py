@@ -25,7 +25,7 @@ _MACOS_OPTION_MAPPINGS: dict[str, str] = {
     "\x1b=": "≠",
 }
 
-_PATCH_MARKER = "_mark_editor_alt_patch"
+_PATCH_MARKER = "_text_editor_alt_patch"
 
 
 def _alt_key_name(sequence: str) -> str:

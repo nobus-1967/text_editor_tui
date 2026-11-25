@@ -1,4 +1,4 @@
-"""Tests for Text Editor TUI 0.1.1."""
+"""Tests for Text Editor TUI 0.2.0."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -27,7 +28,9 @@ from text_editor_tui.constants import (
 from text_editor_tui.help_text import about_markdown, shortcuts_markdown
 from text_editor_tui.helpers import (
     cleanup_temp_files,
+    clear_pending_text,
     ensure_cache_dir,
+    export_to_pdf,
     get_temp_file_path,
     load_temp_file,
     load_theme,
@@ -66,8 +69,8 @@ class TestAppMetadata(unittest.TestCase):
         self.assertEqual(APP_NAME, "Text Editor TUI")
 
     def test_version(self) -> None:
-        """The application version is 0.1.1."""
-        self.assertEqual(VERSION, "0.1.1")
+        """The application version is 0.2.0."""
+        self.assertEqual(VERSION, "0.2.0")
 
     def test_release(self) -> None:
         """The release identifier is 2026.11."""
@@ -182,12 +185,89 @@ class TestCacheAndTempFiles(_IsolatedCacheMixin, unittest.TestCase):
         directory = self._tmp / "work"
         directory.mkdir()
         (directory / "~doc.txt").write_text("x", encoding="utf-8")
-        (directory / "~old.md").write_text("x", encoding="utf-8")
         (directory / "doc.txt").write_text("x", encoding="utf-8")
         cleanup_temp_files(directory)
         self.assertFalse((directory / "~doc.txt").exists())
-        self.assertFalse((directory / "~old.md").exists())
         self.assertTrue((directory / "doc.txt").exists())
+
+    def test_clear_pending_text(self) -> None:
+        """clear_pending_text removes the cached unsaved buffer."""
+        save_temp_file("pending", None)
+        clear_pending_text()
+        self.assertIsNone(load_temp_file(None))
+
+
+class TestPDFExport(unittest.TestCase):
+    """Verify direct Chromium PDF export of text files."""
+
+    def setUp(self) -> None:
+        """Create a temporary directory for source and output files."""
+        self._tmp = Path(tempfile.mkdtemp(prefix="text_editor_tui-pdf-"))
+
+    def tearDown(self) -> None:
+        """Remove the temporary directory and its contents."""
+        for path in sorted(self._tmp.rglob("*"), reverse=True):
+            if path.is_file():
+                path.unlink()
+            elif path.is_dir():
+                path.rmdir()
+        self._tmp.rmdir()
+
+    def test_uses_source_file_directly(self) -> None:
+        """Chromium receives the open text file without an HTML conversion."""
+        source = self._tmp / "notes.txt"
+        source.write_text("hello", encoding="utf-8")
+        output = self._tmp / "notes.pdf"
+        calls: list[list[str]] = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return None
+
+        with patch("text_editor_tui.helpers.subprocess.run", side_effect=fake_run):
+            export_to_pdf(source, str(output))
+
+        self.assertEqual(
+            calls,
+            [
+                [
+                    "chromium",
+                    "--headless",
+                    f"--print-to-pdf={output.resolve()}",
+                    str(source.resolve()),
+                ]
+            ],
+        )
+        self.assertEqual(list(self._tmp.glob("*.html")), [])
+
+    def test_source_without_extension(self) -> None:
+        """A file without an extension is passed to Chromium unchanged."""
+        source = self._tmp / "script"
+        source.write_text("echo hello", encoding="utf-8")
+        calls: list[list[str]] = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return None
+
+        with patch("text_editor_tui.helpers.subprocess.run", side_effect=fake_run):
+            export_to_pdf(source, str(self._tmp / "script.pdf"))
+
+        self.assertEqual(calls[0][3], str(source.resolve()))
+
+    def test_missing_chromium(self) -> None:
+        """A missing Chromium executable raises a clear error."""
+        source = self._tmp / "notes.txt"
+        source.write_text("hello", encoding="utf-8")
+
+        with (
+            patch(
+                "text_editor_tui.helpers.subprocess.run",
+                side_effect=FileNotFoundError,
+            ),
+            self.assertRaisesRegex(RuntimeError, "Chromium is required"),
+        ):
+            export_to_pdf(source, str(self._tmp / "notes.pdf"))
 
 
 class TestTextOps(unittest.TestCase):
@@ -342,6 +422,7 @@ class TestTextualApp(_IsolatedCacheMixin, unittest.IsolatedAsyncioTestCase):
                     "Reopen (Ctrl+Shift+O)",
                     "Save (Ctrl+S / F2)",
                     "Save As... (Ctrl+Shift+S / F3)",
+                    "Export to PDF (Ctrl+E)",
                     "Toggle Theme (Alt+T)",
                     "Quit (F10)",
                 ],
@@ -405,6 +486,114 @@ class TestTextualApp(_IsolatedCacheMixin, unittest.IsolatedAsyncioTestCase):
             )
             self.assertLess(labels.index("Add Indent"), labels.index("Remove Indent"))
             self.assertLess(labels.index("Remove Indent"), labels.index("Line Up"))
+
+    async def test_export_to_pdf_action(self) -> None:
+        """Export passes the open text file directly to Chromium."""
+        app = await self._make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            source = self._tmp / "note.txt"
+            source.write_text("hello", encoding="utf-8")
+            app._open_path(source)
+            await pilot.pause()
+            pdf_path = self._tmp / "note.pdf"
+            inputs: list[str] = []
+
+            def fake_run(cmd, **kwargs):
+                inputs.append(cmd[3])
+                output = Path(cmd[2].split("=", 1)[1])
+                output.write_bytes(b"%PDF-1.4 test")
+                return None
+
+            with patch("text_editor_tui.helpers.subprocess.run", side_effect=fake_run):
+                app.action_export_pdf()
+                await pilot.pause()
+                app.screen.query_one("#file-path").value = str(pdf_path)
+                app.screen._activate_path()
+                await pilot.pause()
+
+            self.assertTrue(pdf_path.exists())
+            self.assertEqual(inputs, [str(source.resolve())])
+            self.assertFalse((self._tmp / "note.html").exists())
+
+    async def test_export_to_pdf_without_extension(self) -> None:
+        """A source file without an extension is passed to Chromium as-is."""
+        app = await self._make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            source = self._tmp / "script"
+            source.write_text("echo hello", encoding="utf-8")
+            app._open_path(source)
+            await pilot.pause()
+            inputs: list[str] = []
+
+            def fake_run(cmd, **kwargs):
+                inputs.append(cmd[3])
+                output = Path(cmd[2].split("=", 1)[1])
+                output.write_bytes(b"%PDF-1.4 test")
+                return None
+
+            with patch("text_editor_tui.helpers.subprocess.run", side_effect=fake_run):
+                app._export_pdf_result(self._tmp / "script.pdf")
+                await pilot.pause()
+
+            self.assertEqual(inputs, [str(source.resolve())])
+
+    async def test_export_to_pdf_unsaved_uses_temp_txt(self) -> None:
+        """An unsaved buffer is printed from Temp.txt without HTML output."""
+        app = await self._make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            app.editor.load_text("unsaved text")
+            await pilot.pause()
+            inputs: list[str] = []
+
+            def fake_run(cmd, **kwargs):
+                html_path = Path(cmd[3])
+                inputs.append(html_path.name)
+                output = Path(cmd[2].split("=", 1)[1])
+                output.write_bytes(b"%PDF-1.4 test")
+                return None
+
+            with patch("text_editor_tui.helpers.subprocess.run", side_effect=fake_run):
+                app._export_pdf_result(self._tmp / "document.pdf")
+                await pilot.pause()
+
+            self.assertEqual(inputs, ["Temp.txt"])
+            self.assertEqual(load_temp_file(None), "unsaved text")
+            self.assertFalse((ensure_cache_dir() / "document.html").exists())
+
+    async def test_external_change_reloads_file(self) -> None:
+        """External edits update the buffer without changing the file path."""
+        app = await self._make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            path = self._tmp / "notes.txt"
+            path.write_text("old", encoding="utf-8")
+            app._open_path(path)
+            await pilot.pause()
+            path.write_text("new text", encoding="utf-8")
+            app._check_external_change()
+            await pilot.pause()
+            self.assertEqual(app.editor.text, "new text")
+            self.assertEqual(app.current_file, path.resolve())
+
+    async def test_save_does_not_trigger_reload(self) -> None:
+        """Saving updates the file signature so the editor keeps its buffer."""
+        app = await self._make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            path = self._tmp / "notes.txt"
+            path.write_text("old", encoding="utf-8")
+            app._open_path(path)
+            await pilot.pause()
+            app.editor.load_text("edited in app")
+            await pilot.pause()
+            app._save_to(path)
+            await pilot.pause()
+            app._check_external_change()
+            await pilot.pause()
+            self.assertEqual(app.editor.text, "edited in app")
 
     async def test_save_preserves_name_without_extension(self) -> None:
         """Saving preserves an explicit name without an extension."""

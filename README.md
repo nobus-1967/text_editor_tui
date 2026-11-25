@@ -27,7 +27,7 @@ For a full-featured terminal Markdown editor with export to HTML5/CSS3, PDF and 
 
 ## Requirements
 
-- Linux
+- GNU/Linux
 - Python 3.10 or newer
 - [Textual](https://pypi.org/project/textual/) 8 or newer
 - [Chromium](https://www.chromium.org/) for PDF export
